@@ -3,7 +3,7 @@ import sys
 
 import matplotlib.pyplot as plt
 import streamlit as st
-
+from src.gan_simulator.loss_analysis import analyze_loss_breakdown
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
@@ -71,6 +71,30 @@ parameters = SwitchingParameters(
 )
 
 results = calculate_losses(parameters)
+breakdown = analyze_loss_breakdown(results)
+
+st.subheader("Loss Breakdown Analysis")
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.metric(
+        "Dominant Loss Component",
+        breakdown["dominant_component"],
+    )
+    st.metric(
+        "Dominant Loss (W)",
+        f'{breakdown["dominant_loss_w"]:.4f} W',
+    )
+
+with col2:
+    st.metric(
+        "Share of Total Loss",
+        f'{breakdown["dominant_percentage"]:.2f}%',
+    )
+
+st.write("**Recommendation:**")
+st.info(breakdown["recommendation"])
 
 st.subheader("Simulation Results")
 
