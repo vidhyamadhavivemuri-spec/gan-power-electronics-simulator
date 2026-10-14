@@ -13,6 +13,9 @@ from src.gan_simulator.parameters import SwitchingParameters
 from src.gan_simulator.thermal_analysis import (
     estimate_junction_temperature,
 )
+from src.gan_simulator.temperature_model import (
+    estimate_temperature_dependent_resistance,
+)
 
 st.set_page_config(
     page_title="GaN Power Electronics Simulator",
@@ -447,4 +450,72 @@ st.caption(
     "device losses, or detailed package and heatsink behavior. "
     "Use the device datasheet and a validated thermal model for "
     "real hardware design."
+)
+st.write(
+    "Estimate how junction temperature changes on-resistance "
+    "and conduction loss using a configurable linear model."
+)
+
+temp_col1, temp_col2 = st.columns(2)
+
+with temp_col1:
+    reference_temperature_c = st.number_input(
+        "Reference temperature (°C)",
+        min_value=-50.0,
+        max_value=200.0,
+        value=25.0,
+        step=5.0,
+        key="reference_temperature_c",
+    )
+
+with temp_col2:
+    temperature_coefficient = st.number_input(
+        "Assumed temperature coefficient (1/°C)",
+        min_value=0.0,
+        max_value=0.02,
+        value=0.004,
+        step=0.001,
+        format="%.4f",
+    )
+
+temperature_result = estimate_temperature_dependent_resistance(
+    reference_resistance_ohm=parameters.rds_on_ohm,
+    reference_temperature_c=reference_temperature_c,
+    junction_temperature_c=thermal_result["junction_temperature_c"],
+    temperature_coefficient_per_c=temperature_coefficient,
+)
+
+adjusted_resistance = temperature_result["estimated_resistance_ohm"]
+
+adjusted_conduction_loss = (
+    parameters.current_a ** 2 * adjusted_resistance
+)
+
+resistance_col1, resistance_col2 = st.columns(2)
+
+resistance_col1.metric(
+    "Estimated on-resistance",
+    f"{adjusted_resistance * 1000:.2f} mΩ",
+    delta=(
+        f"{(adjusted_resistance / parameters.rds_on_ohm - 1) * 100:.1f}% "
+        "vs. reference"
+    ),
+)
+
+resistance_col2.metric(
+    "Adjusted conduction loss",
+    f"{adjusted_conduction_loss:.4f} W",
+    delta=(
+        f"{adjusted_conduction_loss - parameters.current_a**2 * parameters.rds_on_ohm:.4f} W "
+        "vs. reference"
+    ),
+)
+
+st.caption(
+    "Illustrative linear model only. The temperature coefficient is "
+    "user-assumed, and actual GaN on-resistance behavior depends on "
+    "the specific device, datasheet conditions, gate voltage, and "
+    "other operating factors. This section adjusts conduction loss "
+    "only; it does not recalculate total losses or iterate thermal "
+    "equilibrium."
 )
