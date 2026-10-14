@@ -1,21 +1,24 @@
+
 from pathlib import Path
 import sys
-from src.gan_simulator.frequency_optimizer import optimize_switching_frequency
-import matplotlib.pyplot as plt
-import streamlit as st
-from src.gan_simulator.loss_analysis import analyze_loss_breakdown
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
+import matplotlib.pyplot as plt
+import streamlit as st
+
+from src.gan_simulator.frequency_optimizer import optimize_switching_frequency
+from src.gan_simulator.loss_analysis import analyze_loss_breakdown
 from src.gan_simulator.device_comparison import compare_devices
 from src.gan_simulator.loss_model import calculate_losses
 from src.gan_simulator.parameters import SwitchingParameters
-from src.gan_simulator.thermal_analysis import (
-    estimate_junction_temperature,
-)
+from src.gan_simulator.thermal_analysis import estimate_junction_temperature
 from src.gan_simulator.temperature_model import (
     estimate_temperature_dependent_resistance,
 )
+from src.gan_simulator.electrothermal import solve_electrothermal
+
 
 st.set_page_config(
     page_title="GaN Power Electronics Simulator",
@@ -518,4 +521,115 @@ st.caption(
     "other operating factors. This section adjusts conduction loss "
     "only; it does not recalculate total losses or iterate thermal "
     "equilibrium."
+)
+st.divider()
+st.header("🔥 Iterative Electrothermal Analysis")
+
+st.write(
+    "Estimate junction temperature and conduction loss together "
+    "by iteratively updating temperature-dependent on-resistance."
+)
+
+electro_col1, electro_col2 = st.columns(2)
+
+with electro_col1:
+    electro_current_a = st.number_input(
+        "Electrothermal current (A)",
+        min_value=0.0,
+        max_value=100.0,
+        value=float(current_a),
+        step=1.0,
+        key="electro_current_a",
+    )
+
+    electro_reference_resistance = st.number_input(
+        "Reference on-resistance (mΩ)",
+        min_value=0.1,
+        max_value=500.0,
+        value=float(rds_on_mohm),
+        step=1.0,
+        key="electro_reference_resistance",
+    )
+
+    electro_reference_temperature = st.number_input(
+        "Electrothermal reference temperature (°C)",
+        min_value=-50.0,
+        max_value=200.0,
+        value=25.0,
+        step=5.0,
+        key="electro_reference_temperature",
+    )
+
+with electro_col2:
+    electro_ambient_temperature = st.number_input(
+        "Electrothermal ambient temperature (°C)",
+        min_value=-50.0,
+        max_value=150.0,
+        value=float(ambient_temperature_c),
+        step=5.0,
+        key="electro_ambient_temperature",
+    )
+
+    electro_thermal_resistance = st.number_input(
+        "Electrothermal resistance (°C/W)",
+        min_value=0.0,
+        max_value=100.0,
+        value=float(thermal_resistance),
+        step=0.5,
+        key="electro_thermal_resistance",
+    )
+
+    electro_temperature_coefficient = st.number_input(
+        "Electrothermal temperature coefficient (1/°C)",
+        min_value=0.0,
+        max_value=0.02,
+        value=float(temperature_coefficient),
+        step=0.001,
+        format="%.4f",
+        key="electro_temperature_coefficient",
+    )
+
+electro_result = solve_electrothermal(
+    current_a=electro_current_a,
+    reference_resistance_ohm=electro_reference_resistance / 1000.0,
+    reference_temperature_c=electro_reference_temperature,
+    ambient_temperature_c=electro_ambient_temperature,
+    thermal_resistance_c_per_w=electro_thermal_resistance,
+    temperature_coefficient_per_c=electro_temperature_coefficient,
+)
+
+if electro_result["converged"]:
+    st.success(
+        f"Electrothermal calculation converged in "
+        f"{electro_result['iterations']} iterations."
+    )
+else:
+    st.warning(
+        f"The calculation did not converge within "
+        f"{electro_result['iterations']} iterations. "
+        "Consider checking the input parameters."
+    )
+
+electro_metric1, electro_metric2, electro_metric3 = st.columns(3)
+
+electro_metric1.metric(
+    "Junction temperature",
+    f"{electro_result['junction_temperature_c']:.2f} °C",
+)
+
+electro_metric2.metric(
+    "Estimated on-resistance",
+    f"{electro_result['estimated_resistance_ohm'] * 1000:.2f} mΩ",
+)
+
+electro_metric3.metric(
+    "Conduction loss",
+    f"{electro_result['conduction_loss_w']:.3f} W",
+)
+
+st.caption(
+    "Simplified steady-state electrothermal model: conduction loss "
+    "only, constant current, linear temperature-dependent resistance, "
+    "and a fixed thermal resistance. Switching and gate-drive losses "
+    "are not included in this iterative calculation."
 )
