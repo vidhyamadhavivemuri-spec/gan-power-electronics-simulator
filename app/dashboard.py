@@ -10,7 +10,9 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from src.gan_simulator.device_comparison import compare_devices
 from src.gan_simulator.loss_model import calculate_losses
 from src.gan_simulator.parameters import SwitchingParameters
-
+from src.gan_simulator.thermal_analysis import (
+    estimate_junction_temperature,
+)
 
 st.set_page_config(
     page_title="GaN Power Electronics Simulator",
@@ -392,3 +394,57 @@ else:
         "converter topology, passive components, EMI, and operating "
         "requirements."
     )
+st.divider()
+st.header("🌡️ Thermal Analysis")
+
+st.write(
+    "Estimate steady-state transistor junction temperature "
+    "from the modeled total power loss."
+)
+
+thermal_col1, thermal_col2 = st.columns(2)
+
+with thermal_col1:
+    ambient_temperature_c = st.number_input(
+        "Ambient temperature (°C)",
+        min_value=-50.0,
+        max_value=150.0,
+        value=25.0,
+        step=5.0,
+    )
+
+with thermal_col2:
+    thermal_resistance = st.number_input(
+        "Effective thermal resistance (°C/W)",
+        min_value=0.0,
+        max_value=100.0,
+        value=2.0,
+        step=0.5,
+    )
+
+thermal_result = estimate_junction_temperature(
+    power_loss_w=results["total_loss_w"],
+    ambient_temperature_c=ambient_temperature_c,
+    thermal_resistance_c_per_w=thermal_resistance,
+)
+
+thermal_metric_col1, thermal_metric_col2 = st.columns(2)
+
+thermal_metric_col1.metric(
+    "Estimated junction temperature",
+    f"{thermal_result['junction_temperature_c']:.2f} °C",
+)
+
+thermal_metric_col2.metric(
+    "Temperature rise",
+    f"{thermal_result['temperature_rise_c']:.2f} °C",
+)
+
+st.caption(
+    "Simplified steady-state estimate. The thermal resistance "
+    "must represent the intended complete thermal path. This "
+    "model does not include transient heating, temperature-dependent "
+    "device losses, or detailed package and heatsink behavior. "
+    "Use the device datasheet and a validated thermal model for "
+    "real hardware design."
+)
