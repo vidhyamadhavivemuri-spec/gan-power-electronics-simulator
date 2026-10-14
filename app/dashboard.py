@@ -1,6 +1,6 @@
 from pathlib import Path
 import sys
-
+from src.gan_simulator.frequency_optimizer import optimize_switching_frequency
 import matplotlib.pyplot as plt
 import streamlit as st
 from src.gan_simulator.loss_analysis import analyze_loss_breakdown
@@ -247,4 +247,148 @@ comparison_ax.grid(axis="y", alpha=0.3)
 comparison_fig.tight_layout()
 st.pyplot(comparison_fig)
 plt.close(comparison_fig)
+st.divider()
+st.header("🎯 Switching-Frequency Optimization")
 
+st.write(
+    "Find the candidate switching frequency with the lowest modeled "
+    "transistor loss within a selected range."
+)
+
+opt_col1, opt_col2 = st.columns(2)
+
+with opt_col1:
+    min_frequency_khz = st.number_input(
+        "Minimum frequency (kHz)",
+        min_value=10,
+        max_value=500,
+        value=50,
+        step=10,
+    )
+
+with opt_col2:
+    max_frequency_khz = st.number_input(
+        "Maximum frequency (kHz)",
+        min_value=10,
+        max_value=500,
+        value=300,
+        step=10,
+    )
+
+if min_frequency_khz >= max_frequency_khz:
+    st.warning(
+        "Maximum frequency must be greater than minimum frequency."
+    )
+else:
+    candidate_frequencies_hz = [
+        float(frequency_khz * 1000)
+        for frequency_khz in range(
+            int(min_frequency_khz),
+            int(max_frequency_khz) + 1,
+            10,
+        )
+    ]
+
+    if candidate_frequencies_hz[-1] != max_frequency_khz * 1000:
+        candidate_frequencies_hz.append(
+            float(max_frequency_khz * 1000)
+        )
+
+    optimization = optimize_switching_frequency(
+        parameters,
+        candidate_frequencies_hz,
+    )
+
+    best_frequency_khz = (
+        optimization["optimal_frequency_hz"] / 1000
+    )
+
+    opt_col1, opt_col2, opt_col3 = st.columns(3)
+
+    opt_col1.metric(
+        "Lowest-loss candidate",
+        f"{best_frequency_khz:.0f} kHz",
+    )
+    opt_col2.metric(
+        "Minimum modeled loss",
+        f"{optimization['minimum_total_loss_w']:.4f} W",
+    )
+    opt_col3.metric(
+        "Estimated efficiency",
+        f"{optimization['estimated_efficiency_percent']:.2f}%",
+    )
+
+    sweep_results = optimization["sweep_results"]
+
+    frequencies_khz = [
+        result["frequency_hz"] / 1000
+        for result in sweep_results
+    ]
+    total_losses = [
+        result["total_loss_w"]
+        for result in sweep_results
+    ]
+    switching_losses = [
+        result["switching_loss_w"]
+        for result in sweep_results
+    ]
+    conduction_losses = [
+        result["conduction_loss_w"]
+        for result in sweep_results
+    ]
+    gate_drive_losses = [
+        result["gate_drive_loss_w"]
+        for result in sweep_results
+    ]
+
+    optimization_fig, optimization_ax = plt.subplots(figsize=(10, 5))
+
+    optimization_ax.plot(
+        frequencies_khz,
+        total_losses,
+        marker="o",
+        label="Total loss",
+    )
+    optimization_ax.plot(
+        frequencies_khz,
+        switching_losses,
+        linestyle="--",
+        label="Switching loss",
+    )
+    optimization_ax.plot(
+        frequencies_khz,
+        conduction_losses,
+        linestyle=":",
+        label="Conduction loss",
+    )
+    optimization_ax.plot(
+        frequencies_khz,
+        gate_drive_losses,
+        linestyle="-.",
+        label="Gate-drive loss",
+    )
+
+    optimization_ax.axvline(
+        best_frequency_khz,
+        linestyle=":",
+        label="Lowest-loss candidate",
+    )
+    optimization_ax.set_xlabel("Switching frequency (kHz)")
+    optimization_ax.set_ylabel("Modeled power loss (W)")
+    optimization_ax.set_title("Modeled Loss vs. Switching Frequency")
+    optimization_ax.grid(alpha=0.3)
+    optimization_ax.legend()
+
+    optimization_fig.tight_layout()
+    st.pyplot(optimization_fig)
+    plt.close(optimization_fig)
+
+    st.caption(
+        "The optimizer selects the lowest-loss candidate among the "
+        "tested frequencies. With this simplified model, switching "
+        "and gate-drive losses increase with frequency while conduction "
+        "loss remains constant. This is not a universal real-device "
+        "optimum; practical designs must also consider thermal limits, "
+        "converter topology, passive components, EMI, and operating "
+        "requirements."
+    )
