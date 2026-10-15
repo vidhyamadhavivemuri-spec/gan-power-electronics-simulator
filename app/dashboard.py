@@ -13,6 +13,9 @@ import streamlit as st
 from src.gan_simulator.device_comparison import compare_devices
 from src.gan_simulator.electrothermal import solve_electrothermal
 from src.gan_simulator.frequency_optimizer import optimize_switching_frequency
+from src.gan_simulator.frequency_thermal_analysis import (
+    analyze_frequency_thermal_behavior,
+)
 from src.gan_simulator.loss_analysis import analyze_loss_breakdown
 from src.gan_simulator.loss_model import calculate_losses
 from src.gan_simulator.parameters import SwitchingParameters
@@ -625,4 +628,143 @@ st.caption(
     "assumes constant thermal resistance, thermal capacitance, and power "
     "change. Validate against device datasheets and suitable thermal models "
     "before applying results to real hardware."
+)
+st.divider()
+st.header("🌡️ Frequency vs. Junction Temperature")
+st.write(
+"Explore how switching frequency affects modeled power loss and "
+"estimated steady-state junction temperature."
+)
+
+freq_thermal_col1, freq_thermal_col2, freq_thermal_col3 = st.columns(3)
+
+with freq_thermal_col1:
+    ft_min_khz = st.slider(
+        "Minimum sweep frequency (kHz)",
+        min_value=10,
+        max_value=490,
+        value=50,
+        step=10,
+        key="ft_min_frequency_khz",
+    )
+
+with freq_thermal_col2:
+    ft_max_khz = st.slider(
+        "Maximum sweep frequency (kHz)",
+        min_value=20,
+        max_value=500,
+        value=500,
+        step=10,
+        key="ft_max_frequency_khz",
+    )
+
+with freq_thermal_col3:
+    ft_points = st.slider(
+        "Number of sweep points",
+        min_value=5,
+        max_value=100,
+        value=30,
+        step=5,
+        key="ft_sweep_points",
+    )
+
+ft_ambient_c = st.number_input(
+"Frequency sweep ambient temperature (°C)",
+min_value=-50.0,
+max_value=150.0,
+value=25.0,
+step=5.0,
+key="ft_ambient_temperature_c",
+)
+
+ft_rth = st.number_input(
+"Frequency sweep thermal resistance (°C/W)",
+min_value=0.1,
+max_value=100.0,
+value=2.0,
+step=0.1,
+key="ft_thermal_resistance",
+)
+
+if ft_min_khz >= ft_max_khz:
+    st.warning("Maximum frequency must be greater than minimum frequency.")
+else:
+    ft_frequencies_hz = [
+        float(ft_min_khz * 1000)
+        + i * (
+            (ft_max_khz - ft_min_khz) * 1000 / (ft_points - 1)
+        )
+        for i in range(ft_points)
+    ]
+
+    ft_results = analyze_frequency_thermal_behavior(
+        base_parameters=parameters,
+        frequencies_hz=ft_frequencies_hz,
+        ambient_temperature_c=float(ft_ambient_c),
+        thermal_resistance_c_per_w=float(ft_rth),
+    )
+
+    ft_frequency_khz = [
+        item["frequency_hz"] / 1000 for item in ft_results
+    ]
+    ft_losses_w = [item["total_loss_w"] for item in ft_results]
+    ft_temperatures_c = [
+        item["junction_temperature_c"] for item in ft_results
+    ]
+
+    ft_fig, ft_ax1 = plt.subplots(figsize=(10, 5))
+
+    loss_line = ft_ax1.plot(
+        ft_frequency_khz,
+        ft_losses_w,
+        label="Total power loss",
+        linewidth=2,
+    )
+    ft_ax1.set_xlabel("Switching frequency (kHz)")
+    ft_ax1.set_ylabel("Total modeled power loss (W)")
+    ft_ax1.grid(True, alpha=0.3)
+
+    ft_ax2 = ft_ax1.twinx()
+    temperature_line = ft_ax2.plot(
+        ft_frequency_khz,
+        ft_temperatures_c,
+        label="Junction temperature",
+        linewidth=2,
+        linestyle="--",
+    )
+    ft_ax2.set_ylabel("Estimated junction temperature (°C)")
+
+    ft_lines = loss_line + temperature_line
+    ft_labels = [line.get_label() for line in ft_lines]
+    ft_ax1.legend(ft_lines, ft_labels, loc="best")
+
+    ft_fig.tight_layout()
+    st.pyplot(ft_fig)
+    plt.close(ft_fig)
+
+    st.dataframe(
+        [
+            {
+                "Frequency (kHz)": round(item["frequency_hz"] / 1000, 2),
+                "Total power loss (W)": round(item["total_loss_w"], 4),
+                "Efficiency (%)": round(
+                    item["estimated_efficiency_percent"], 2
+                ),
+                "Temperature rise (°C)": round(
+                    item["temperature_rise_c"], 2
+                ),
+                "Junction temperature (°C)": round(
+                    item["junction_temperature_c"], 2
+                ),
+            }
+            for item in ft_results
+        ],
+        use_container_width=True,
+    )
+
+st.caption(
+    "Educational steady-state estimate. Total modeled transistor loss "
+    "is multiplied by a fixed thermal resistance to estimate junction "
+    "temperature. This sweep does not model temperature-dependent losses, "
+    "thermal transients, device-specific limits, or cooling-system changes."
 )
