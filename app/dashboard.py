@@ -31,7 +31,13 @@ from src.gan_simulator.temperature_dependent_losses import (
     calculate_temperature_dependent_losses,
 )
 from src.gan_simulator.full_electrothermal import solve_full_electrothermal
-
+from src.gan_simulator.device_profiles import (
+    get_device_profile,
+    list_device_profiles,
+)
+from src.gan_simulator.device_profile_adapter import (
+    create_switching_parameters,
+)
 st.set_page_config(
     page_title="GaN Power Electronics Simulator",
     page_icon="⚡",
@@ -166,21 +172,59 @@ st.write(
     "particular transistors."
 )
 
-gan_parameters = parameters
-silicon_parameters = SwitchingParameters(
+
+profile_options = {
+    profile.name: profile
+    for profile in list_device_profiles()
+}
+
+gan_profile_names = [
+    name
+    for name, profile in profile_options.items()
+    if profile.technology == "GaN"
+]
+
+silicon_profile_names = [
+    name
+    for name, profile in profile_options.items()
+    if profile.technology == "Silicon MOSFET"
+]
+
+selected_gan_name = st.selectbox(
+    "Select GaN device profile",
+    options=gan_profile_names,
+    key="selected_gan_profile",
+)
+
+selected_silicon_name = st.selectbox(
+    "Select Silicon device profile",
+    options=silicon_profile_names,
+    key="selected_silicon_profile",
+)
+
+gan_profile = profile_options[selected_gan_name]
+silicon_profile = profile_options[selected_silicon_name]
+
+gan_parameters = create_switching_parameters(
+    profile=gan_profile,
     voltage_v=parameters.voltage_v,
     current_a=parameters.current_a,
     frequency_hz=parameters.frequency_hz,
-    rds_on_ohm=0.08,
-    rise_time_s=50e-9,
-    fall_time_s=50e-9,
-    gate_charge_c=30e-9,
-    gate_voltage_v=10.0,
     output_power_w=parameters.output_power_w,
 )
+
+silicon_parameters = create_switching_parameters(
+    profile=silicon_profile,
+    voltage_v=parameters.voltage_v,
+    current_a=parameters.current_a,
+    frequency_hz=parameters.frequency_hz,
+    output_power_w=parameters.output_power_w,
+)
+
 comparison = compare_devices(gan_parameters, silicon_parameters)
 gan = comparison["GaN"]
 silicon = comparison["Silicon"]
+
 
 col1, col2 = st.columns(2)
 with col1:
