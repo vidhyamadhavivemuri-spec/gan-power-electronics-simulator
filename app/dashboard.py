@@ -30,6 +30,7 @@ from src.gan_simulator.transient_thermal import simulate_transient_temperature
 from src.gan_simulator.temperature_dependent_losses import (
     calculate_temperature_dependent_losses,
 )
+from src.gan_simulator.full_electrothermal import solve_full_electrothermal
 
 st.set_page_config(
     page_title="GaN Power Electronics Simulator",
@@ -1071,3 +1072,134 @@ st.caption(
     "temperature coefficient for on-resistance. Results depend on the "
     "simplifying assumptions and are not hardware safety guarantees."
 )
+
+st.divider()
+
+st.header("Full Electrothermal Feedback Analysis")
+
+st.write(
+    "This analysis iteratively calculates transistor losses and junction "
+    "temperature. Conduction loss changes with temperature, while switching "
+    "and gate-drive losses remain constant in this simplified model."
+)
+
+full_et_col1, full_et_col2 = st.columns(2)
+
+with full_et_col1:
+    full_et_ambient = st.number_input(
+        "Ambient temperature (°C)",
+        value=25.0,
+        step=1.0,
+        key="full_et_ambient",
+    )
+
+    full_et_thermal_resistance = st.number_input(
+        "Thermal resistance (°C/W)",
+        min_value=0.0,
+        value=2.0,
+        step=0.5,
+        key="full_et_thermal_resistance",
+    )
+
+with full_et_col2:
+    full_et_temp_coefficient = st.number_input(
+        "Temperature coefficient (per °C)",
+        min_value=0.0,
+        value=0.004,
+        step=0.001,
+        format="%.4f",
+        key="full_et_temp_coefficient",
+    )
+
+    full_et_reference_temp = st.number_input(
+        "Reference temperature (°C)",
+        value=25.0,
+        step=1.0,
+        key="full_et_reference_temp",
+    )
+
+full_et_tolerance = st.number_input(
+    "Convergence tolerance (°C)",
+    min_value=0.0001,
+    value=0.01,
+    step=0.01,
+    format="%.4f",
+    key="full_et_tolerance",
+)
+
+if st.button("Run Full Electrothermal Analysis"):
+    try:
+        full_et_result = solve_full_electrothermal(
+            parameters=parameters,
+            ambient_temperature_c=float(full_et_ambient),
+            thermal_resistance_c_per_w=float(
+                full_et_thermal_resistance
+            ),
+            temperature_coefficient_per_c=float(
+                full_et_temp_coefficient
+            ),
+            reference_temperature_c=float(full_et_reference_temp),
+            tolerance_c=float(full_et_tolerance),
+        )
+
+        if full_et_result["converged"]:
+            st.success(
+                f"Analysis converged in "
+                f"{full_et_result['iterations']} iterations."
+            )
+        else:
+            st.warning(
+                f"Analysis did not converge within "
+                f"{full_et_result['iterations']} iterations. "
+                "Treat the results as an unconverged estimate."
+            )
+
+        full_et_metric1, full_et_metric2 = st.columns(2)
+        full_et_metric1.metric(
+            "Junction temperature",
+            f"{full_et_result['junction_temperature_c']:.2f} °C",
+        )
+        full_et_metric2.metric(
+            "Total transistor loss",
+            f"{full_et_result['total_loss_w']:.4f} W",
+        )
+
+        full_et_metric3, full_et_metric4 = st.columns(2)
+        full_et_metric3.metric(
+            "Estimated efficiency",
+            f"{full_et_result['estimated_efficiency_percent']:.3f}%",
+        )
+        full_et_metric4.metric(
+            "Temperature rise",
+            f"{full_et_result['temperature_rise_c']:.2f} °C",
+        )
+
+        st.subheader("Temperature-Adjusted Loss Breakdown")
+
+        full_et_loss_data = {
+            "Loss component": [
+                "Conduction loss",
+                "Switching loss",
+                "Gate-drive loss",
+            ],
+            "Power loss (W)": [
+                full_et_result["conduction_loss_w"],
+                full_et_result["switching_loss_w"],
+                full_et_result["gate_drive_loss_w"],
+            ],
+        }
+
+        full_et_loss_df = pd.DataFrame(full_et_loss_data)
+        st.bar_chart(
+            full_et_loss_df.set_index("Loss component")
+        )
+        st.dataframe(full_et_loss_df, use_container_width=True)
+
+        st.caption(
+            "This is a simplified educational model. It assumes fixed "
+            "thermal resistance and temperature-independent switching "
+            "and gate-drive losses; it is not a hardware safety guarantee."
+        )
+
+    except ValueError as error:
+        st.error(f"Full electrothermal analysis failed: {error}")
