@@ -9,12 +9,15 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 import matplotlib.pyplot as plt
 import streamlit as st
-
+import pandas as pd
 from src.gan_simulator.device_comparison import compare_devices
 from src.gan_simulator.electrothermal import solve_electrothermal
 from src.gan_simulator.frequency_optimizer import optimize_switching_frequency
 from src.gan_simulator.frequency_thermal_analysis import (
     analyze_frequency_thermal_behavior,
+)
+from src.gan_simulator.electrothermal_optimizer import (
+    optimize_electrothermal_frequency,
 )
 from src.gan_simulator.loss_analysis import analyze_loss_breakdown
 from src.gan_simulator.loss_model import calculate_losses
@@ -898,3 +901,173 @@ else:
         "Switching and gate-drive losses remain at their baseline values. "
         "The coefficient is configurable and is not a universal GaN property."
     )
+
+st.divider()
+st.header("Electrothermal Frequency Optimization")
+
+st.write(
+    "Find the lowest-loss switching frequency while accounting for "
+    "temperature-dependent on-resistance and a junction-temperature limit."
+)
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    et_ambient_temp = st.number_input(
+        "Ambient temperature (°C)",
+        min_value=-40.0,
+        max_value=150.0,
+        value=25.0,
+        step=5.0,
+        key="et_ambient_temp",
+    )
+
+with col2:
+    et_thermal_resistance = st.number_input(
+        "Thermal resistance (°C/W)",
+        min_value=0.01,
+        max_value=100.0,
+        value=2.0,
+        step=0.1,
+        key="et_thermal_resistance",
+    )
+
+with col3:
+    et_temp_coefficient = st.number_input(
+        "RDS(on) temperature coefficient (1/°C)",
+        min_value=0.0,
+        max_value=0.02,
+        value=0.004,
+        step=0.001,
+        format="%.4f",
+        key="et_temp_coefficient",
+    )
+
+col4, col5 = st.columns(2)
+
+with col4:
+    et_reference_temp = st.number_input(
+        "Reference temperature (°C)",
+        min_value=-40.0,
+        max_value=150.0,
+        value=25.0,
+        step=5.0,
+        key="et_reference_temp",
+    )
+
+with col5:
+    et_max_temp = st.number_input(
+        "Maximum junction temperature (°C)",
+        min_value=25.0,
+        max_value=250.0,
+        value=125.0,
+        step=5.0,
+        key="et_max_temp",
+    )
+
+col6, col7 = st.columns(2)
+
+with col6:
+    et_min_frequency = st.number_input(
+        "Minimum switching frequency (Hz)",
+        min_value=1000.0,
+        max_value=1000000.0,
+        value=50000.0,
+        step=10000.0,
+        key="et_min_frequency",
+    )
+
+with col7:
+    et_max_frequency = st.number_input(
+        "Maximum switching frequency (Hz)",
+        min_value=1000.0,
+        max_value=1000000.0,
+        value=300000.0,
+        step=10000.0,
+        key="et_max_frequency",
+    )
+
+et_candidate_count = st.slider(
+    "Number of candidate frequencies",
+    min_value=3,
+    max_value=30,
+    value=10,
+    key="et_candidate_count",
+)
+
+if et_min_frequency >= et_max_frequency:
+    st.error("Maximum frequency must be greater than minimum frequency.")
+else:
+    et_frequencies = [
+        float(value)
+        for value in __import__("numpy").linspace(
+            et_min_frequency,
+            et_max_frequency,
+            et_candidate_count,
+        )
+    ]
+
+    try:
+        et_result = optimize_electrothermal_frequency(
+            base_parameters=parameters,
+            frequencies_hz=et_frequencies,
+            ambient_temperature_c=float(et_ambient_temp),
+            thermal_resistance_c_per_w=float(et_thermal_resistance),
+            temperature_coefficient_per_c=float(et_temp_coefficient),
+            reference_temperature_c=float(et_reference_temp),
+            max_junction_temperature_c=float(et_max_temp),
+        )
+
+        st.subheader("Optimization Results")
+
+        metric1, metric2 = st.columns(2)
+        metric1.metric(
+            "Optimal frequency",
+            f"{et_result['optimal_frequency_hz'] / 1000:.2f} kHz",
+        )
+        metric2.metric(
+            "Minimum total loss",
+            f"{et_result['minimum_total_loss_w']:.4f} W",
+        )
+
+        metric3, metric4 = st.columns(2)
+        metric3.metric(
+            "Estimated efficiency",
+            f"{et_result['estimated_efficiency_percent']:.3f}%",
+        )
+        metric4.metric(
+            "Estimated junction temperature",
+            f"{et_result['estimated_junction_temperature_c']:.2f} °C",
+        )
+
+        et_results_df = pd.DataFrame(et_result["sweep_results"])
+
+        st.subheader("Frequency vs. Total Loss")
+        st.line_chart(
+            et_results_df.set_index("frequency_hz")["total_loss_w"]
+        )
+
+        st.subheader("Frequency vs. Junction Temperature")
+        st.line_chart(
+            et_results_df.set_index("frequency_hz")[
+                "junction_temperature_c"
+            ]
+        )
+
+        st.subheader("Candidate Frequency Results")
+        st.dataframe(et_results_df, use_container_width=True)
+
+        st.success(
+            f"Selected {et_result['optimal_frequency_hz'] / 1000:.2f} kHz "
+            "from the temperature-feasible candidates."
+        )
+
+    except ValueError as error:
+        st.warning(f"Optimization could not be completed: {error}")
+
+st.caption(
+    "Educational model: the optimizer iteratively estimates junction "
+    "temperature using a fixed thermal resistance and a linear "
+    "temperature coefficient for on-resistance. Results depend on the "
+    "simplifying assumptions and are not hardware safety guarantees."
+)
