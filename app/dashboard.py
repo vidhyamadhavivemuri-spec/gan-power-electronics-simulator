@@ -24,7 +24,9 @@ from src.gan_simulator.temperature_model import (
 )
 from src.gan_simulator.thermal_analysis import estimate_junction_temperature
 from src.gan_simulator.transient_thermal import simulate_transient_temperature
-
+from src.gan_simulator.temperature_dependent_losses import (
+    calculate_temperature_dependent_losses,
+)
 
 st.set_page_config(
     page_title="GaN Power Electronics Simulator",
@@ -768,3 +770,131 @@ st.caption(
     "temperature. This sweep does not model temperature-dependent losses, "
     "thermal transients, device-specific limits, or cooling-system changes."
 )
+
+st.divider()
+st.header("🌡️ Temperature-Dependent Power Losses")
+
+st.write(
+    "Compare the baseline loss calculation with losses adjusted for "
+    "junction-temperature-dependent on-resistance."
+)
+
+td_col1, td_col2 = st.columns(2)
+
+with td_col1:
+    td_reference_temp = st.number_input(
+        "Reference temperature (°C)",
+        min_value=-50.0,
+        max_value=200.0,
+        value=25.0,
+        step=5.0,
+        key="td_reference_temp",
+    )
+
+    td_junction_temp = st.number_input(
+        "Junction temperature (°C)",
+        min_value=-50.0,
+        max_value=250.0,
+        value=100.0,
+        step=5.0,
+        key="td_junction_temp",
+    )
+
+with td_col2:
+    td_coefficient = st.number_input(
+        "On-resistance temperature coefficient (1/°C)",
+        min_value=0.0,
+        max_value=0.02,
+        value=0.004,
+        step=0.001,
+        format="%.4f",
+        key="td_temperature_coefficient",
+    )
+
+td_baseline = calculate_losses(parameters)
+
+try:
+    td_adjusted = calculate_temperature_dependent_losses(
+        parameters=parameters,
+        reference_temperature_c=float(td_reference_temp),
+        junction_temperature_c=float(td_junction_temp),
+        temperature_coefficient_per_c=float(td_coefficient),
+    )
+except ValueError as error:
+    st.error(f"Unable to calculate temperature-dependent losses: {error}")
+else:
+    td_metric1, td_metric2, td_metric3 = st.columns(3)
+
+    td_metric1.metric(
+        "Baseline total loss",
+        f"{td_baseline['total_loss_w']:.4f} W",
+    )
+
+    td_metric2.metric(
+        "Temperature-adjusted loss",
+        f"{td_adjusted['total_loss_w']:.4f} W",
+        delta=(
+            f"{td_adjusted['total_loss_w'] - td_baseline['total_loss_w']:+.4f} W"
+        ),
+    )
+
+    td_metric3.metric(
+        "Adjusted efficiency",
+        f"{td_adjusted['estimated_efficiency_percent']:.2f}%",
+        delta=(
+            f"{td_adjusted['estimated_efficiency_percent'] - td_baseline['estimated_efficiency_percent']:+.2f} percentage points"
+        ),
+    )
+
+    td_categories = [
+        "Conduction",
+        "Switching",
+        "Gate drive",
+    ]
+
+    td_baseline_values = [
+        td_baseline["conduction_loss_w"],
+        td_baseline["switching_loss_w"],
+        td_baseline["gate_drive_loss_w"],
+    ]
+
+    td_adjusted_values = [
+        td_adjusted["conduction_loss_w"],
+        td_adjusted["switching_loss_w"],
+        td_adjusted["gate_drive_loss_w"],
+    ]
+
+    td_fig, td_ax = plt.subplots(figsize=(9, 5))
+    td_x = list(range(len(td_categories)))
+    td_width = 0.35
+
+    td_ax.bar(
+        [x - td_width / 2 for x in td_x],
+        td_baseline_values,
+        width=td_width,
+        label="Baseline",
+    )
+    td_ax.bar(
+        [x + td_width / 2 for x in td_x],
+        td_adjusted_values,
+        width=td_width,
+        label="Temperature-adjusted",
+    )
+
+    td_ax.set_xticks(td_x)
+    td_ax.set_xticklabels(td_categories)
+    td_ax.set_ylabel("Power loss (W)")
+    td_ax.set_title("Baseline vs. Temperature-Adjusted Losses")
+    td_ax.legend()
+    td_ax.grid(axis="y", alpha=0.3)
+
+    td_fig.tight_layout()
+    st.pyplot(td_fig)
+    plt.close(td_fig)
+
+    st.caption(
+        "Simplified educational model: only conduction loss changes with "
+        "temperature through the assumed linear on-resistance coefficient. "
+        "Switching and gate-drive losses remain at their baseline values. "
+        "The coefficient is configurable and is not a universal GaN property."
+    )
