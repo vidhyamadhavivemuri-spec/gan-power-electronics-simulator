@@ -54,11 +54,12 @@ The Streamlit dashboard provides interactive controls for exploring semiconducto
 
 ### Loss Breakdown and Simulation Results
 
-![GaN Power Electronics Simulator dashboard showing operating parameters, loss breakdown, and estimated efficiency](docs/images/dashboard-overview.png)
+![GaN Power Electronics Simulator dashboard](docs/images/dashboard-overview.png)
+
 
 ### GaN vs. Silicon Device Comparison
 
-![Device comparison dashboard showing selectable GaN and silicon profiles and their modeled losses](docs/images/device-comparison.png)
+![GaN vs. Silicon device comparison](docs/images/device-comparison.png)
 
 The dashboard presents model-based estimates. Results depend on the selected parameters and simplified assumptions described in this README.
 
