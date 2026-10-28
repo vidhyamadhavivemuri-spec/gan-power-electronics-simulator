@@ -1,8 +1,8 @@
 
-"""Illustrative semiconductor device profiles for simulation.
+"""Semiconductor device profiles for educational simulation.
 
-The values in this module are examples for software testing and learning.
-They are not verified specifications for real commercial devices.
+Profiles explicitly distinguish illustrative examples from datasheet-backed
+parameters. Datasheet values are valid only under their stated conditions.
 """
 
 from dataclasses import dataclass
@@ -20,7 +20,16 @@ class DeviceProfile:
     gate_charge_c: float
     gate_voltage_v: float
     data_source: str = "Illustrative example; not a verified datasheet"
+    source_url: str = ""
+    test_conditions: str = ""
+    is_datasheet_verified: bool = False
 
+
+_GS66508B_DATASHEET = (
+    "Infineon/GaN Systems GS66508B datasheet, "
+    "https://www.infineon.com/dgdl/Infineon-GS66508B-"
+    "DataSheet-v01_00-EN.pdf?fileId=8ac78c8c8d2fe47b018e5161c92653de"
+)
 
 _DEVICE_PROFILES = {
     "example_gan": DeviceProfile(
@@ -41,11 +50,30 @@ _DEVICE_PROFILES = {
         gate_charge_c=25e-9,
         gate_voltage_v=10.0,
     ),
+    "gs66508b": DeviceProfile(
+        name="GS66508B (datasheet-based)",
+        technology="GaN",
+        rds_on_ohm=0.050,
+        rise_time_s=3.7e-9,
+        fall_time_s=5.2e-9,
+        gate_charge_c=6.1e-9,
+        gate_voltage_v=6.0,
+        data_source=_GS66508B_DATASHEET,
+        source_url=_GS66508B_DATASHEET.split(", ", 1)[1],
+        test_conditions=(
+            "RDS(on): typical 50 mΩ at TJ=25 °C, VGS=6 V, ID=9 A. "
+            "Gate charge: 6.1 nC under the datasheet's stated gate-charge "
+            "test conditions. Rise/fall times: 3.7/5.2 ns under the "
+            "specified 400 V, 16 A, 6 V gate-drive, 5 Ω external "
+            "gate-resistance switching test."
+        ),
+        is_datasheet_verified=True,
+    ),
 }
 
 
 def list_device_profiles() -> list[DeviceProfile]:
-    """Return all available example device profiles."""
+    """Return all available device profiles."""
     return list(_DEVICE_PROFILES.values())
 
 

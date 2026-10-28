@@ -205,6 +205,32 @@ selected_silicon_name = st.selectbox(
 gan_profile = profile_options[selected_gan_name]
 silicon_profile = profile_options[selected_silicon_name]
 
+st.subheader("Selected Device Profile Details")
+
+for label, profile in [
+    ("GaN", gan_profile),
+    ("Silicon MOSFET", silicon_profile),
+]:
+    status = (
+        "Datasheet-based"
+        if profile.is_datasheet_verified
+        else "Illustrative example"
+    )
+
+    with st.expander(f"{label}: {profile.name} — {status}"):
+        st.write(f"**Technology:** {profile.technology}")
+        st.write(f"**Data source:** {profile.data_source}")
+
+        if profile.source_url:
+            st.markdown(
+                f"[View manufacturer datasheet]({profile.source_url})"
+            )
+
+        if profile.test_conditions:
+            st.write("**Datasheet test conditions:**")
+            st.write(profile.test_conditions)
+
+
 gan_parameters = create_switching_parameters(
     profile=gan_profile,
     voltage_v=parameters.voltage_v,
