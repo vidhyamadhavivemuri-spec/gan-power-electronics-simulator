@@ -5,7 +5,7 @@ A Python-based simulation platform for exploring **Gallium Nitride (GaN) power d
 [![Python](https://img.shields.io/badge/Python-3.14-blue)](https://www.python.org/)
 [![Testing](https://img.shields.io/badge/Tests-94%20passing-brightgreen)](#running-the-tests)
 [![Platform](https://img.shields.io/badge/Platform-Software--Only-informational)](#model-assumptions-and-limitations)
-
+[![Python Tests](https://github.com/vidhyamadhavivemuri-spec/gan-power-electronics-simulator/actions/workflows/tests.yml/badge.svg)](https://github.com/vidhyamadhavivemuri-spec/gan-power-electronics-simulator/actions/workflows/tests.yml)
 ## Overview
 
 Gallium Nitride (GaN) is a wide-bandgap semiconductor used in high-frequency power electronics. Its switching characteristics can offer advantages over silicon devices in suitable applications.
