@@ -48,6 +48,20 @@ The simulator also includes a datasheet-based profile for the **GS66508B GaN tra
 | Interactive dashboard | Provides controls, comparisons, metrics, and visualizations through Streamlit. |
 | Automated testing | Checks calculations, model behavior, and input validation. |
 
+## Dashboard Preview
+
+The Streamlit dashboard provides interactive controls for exploring semiconductor operating conditions, estimating transistor losses, and comparing device profiles.
+
+### Loss Breakdown and Simulation Results
+
+![GaN Power Electronics Simulator dashboard showing operating parameters, loss breakdown, and estimated efficiency](docs/images/dashboard-overview.png)
+
+### GaN vs. Silicon Device Comparison
+
+![Device comparison dashboard showing selectable GaN and silicon profiles and their modeled losses](docs/images/device-comparison.png)
+
+The dashboard presents model-based estimates. Results depend on the selected parameters and simplified assumptions described in this README.
+
 ## Technology Stack
 
 - **Python** — simulation logic and numerical calculations
