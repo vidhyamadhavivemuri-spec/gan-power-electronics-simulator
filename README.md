@@ -1,23 +1,30 @@
 # GaN Power Electronics Simulator
 
-A Python-based simulation project for exploring **Gallium Nitride (GaN) power devices**, switching losses, converter efficiency, operating-frequency trade-offs, and thermal behavior through numerical models and an interactive dashboard.
+A Python-based simulation platform for exploring **Gallium Nitride (GaN) power devices**, switching losses, converter efficiency, frequency optimization, and thermal behavior through numerical models and an interactive dashboard.
+
+[![Python](https://img.shields.io/badge/Python-3.14-blue)](https://www.python.org/)
+[![Testing](https://img.shields.io/badge/Tests-94%20passing-brightgreen)](#running-the-tests)
+[![Platform](https://img.shields.io/badge/Platform-Software--Only-informational)](#model-assumptions-and-limitations)
 
 ## Overview
 
-Gallium Nitride (GaN) is a wide-bandgap semiconductor used in power electronics. Compared with conventional silicon devices, GaN devices can offer faster switching and lower switching-related losses in suitable applications.
+Gallium Nitride (GaN) is a wide-bandgap semiconductor used in high-frequency power electronics. Its switching characteristics can offer advantages over silicon devices in suitable applications.
 
-This project provides a software-only environment to explore power-device behavior without requiring physical hardware. It combines analytical calculations, numerical simulations, automated tests, and interactive visualizations to help users understand the relationships between electrical losses, switching frequency, and device temperature.
+This project provides a software-only environment for studying power-device losses and thermal behavior without requiring physical hardware. It combines analytical calculations, numerical simulations, automated tests, and an interactive Streamlit dashboard.
+
+The simulator also includes a datasheet-based profile for the **GS66508B GaN transistor**, alongside illustrative device profiles for comparing modeled operating scenarios.
 
 ## Project Objectives
 
 - Understand the fundamentals of GaN power electronics.
 - Estimate conduction, switching, and gate-drive losses.
-- Analyze the effect of switching frequency on power losses.
-- Compare illustrative GaN and silicon device parameters.
-- Estimate junction temperature using thermal models.
-- Explore temperature-dependent resistance and electrothermal feedback.
-- Simulate transient temperature response using a first-order thermal RC model.
-- Provide an interactive dashboard for experimenting with model inputs.
+- Investigate the effect of switching frequency on power dissipation.
+- Compare modeled GaN and silicon device parameters.
+- Estimate steady-state and transient junction temperatures.
+- Model temperature-dependent on-state resistance.
+- Analyze electrothermal feedback between electrical losses and temperature.
+- Explore frequency optimization under thermal and loss constraints.
+- Provide interactive visualizations for engineering experimentation.
 
 ## Features
 
@@ -25,22 +32,27 @@ This project provides a software-only environment to explore power-device behavi
 |---|---|
 | Power-loss modeling | Estimates conduction, switching, and gate-drive losses. |
 | Waveform generation | Generates illustrative switching waveforms. |
-| Frequency sweep | Evaluates losses at multiple switching frequencies. |
-| Device comparison | Compares two sets of device parameters representing GaN and silicon. |
-| Loss analysis | Identifies the dominant modeled loss component. |
-| Frequency optimization | Selects the lowest-loss candidate from the supplied frequency range. |
-| Steady-state thermal analysis | Estimates junction temperature from power loss and thermal resistance. |
+| Frequency sweep | Evaluates modeled losses over a range of switching frequencies. |
+| Device comparison | Compares device parameter sets under common operating conditions. |
+| Device profiles | Supports illustrative devices and a datasheet-based GS66508B profile. |
+| Loss analysis | Breaks down losses into modeled components. |
+| Frequency optimization | Searches candidate frequencies for a minimum-loss operating point. |
+| Steady-state thermal analysis | Estimates junction temperature using thermal resistance. |
 | Temperature-dependent resistance | Models resistance variation with temperature. |
-| Electrothermal analysis | Iteratively estimates coupled resistance, conduction loss, and junction temperature. |
-| Transient thermal simulation | Models junction-temperature response over time using a first-order thermal RC model. |
-| Interactive dashboard | Provides controls and visualizations through Streamlit. |
-| Automated testing | Checks model behavior, input validation, and expected results. |
+| Electrothermal analysis | Iteratively couples resistance, conduction loss, and junction temperature. |
+| Transient thermal simulation | Estimates temperature response using a first-order thermal RC model. |
+| Frequency-versus-temperature analysis | Explores how switching frequency affects modeled junction temperature. |
+| Temperature-dependent losses | Evaluates power losses as device temperature changes. |
+| Electrothermal frequency optimization | Evaluates frequency candidates with electrothermal effects. |
+| Full electrothermal feedback | Analyzes coupled electrical and thermal behavior. |
+| Interactive dashboard | Provides controls, comparisons, metrics, and visualizations through Streamlit. |
+| Automated testing | Checks calculations, model behavior, and input validation. |
 
 ## Technology Stack
 
 - **Python** — simulation logic and numerical calculations
 - **NumPy** — numerical operations
-- **Matplotlib** — waveform and analysis plots
+- **Matplotlib** — plots and visualizations
 - **Streamlit** — interactive dashboard
 - **unittest** — automated testing
 - **Git and GitHub** — version control and project hosting
@@ -57,7 +69,6 @@ gan-power-electronics-simulator/
 │   └── plot_frequency_sweep.py
 ├── src/
 │   └── gan_simulator/
-│       ├── __init__.py
 │       ├── parameters.py
 │       ├── loss_model.py
 │       ├── waveforms.py
@@ -68,25 +79,24 @@ gan-power-electronics-simulator/
 │       ├── thermal_analysis.py
 │       ├── temperature_model.py
 │       ├── electrothermal.py
-│       └── transient_thermal.py
+│       ├── transient_thermal.py
+│       ├── frequency_thermal_analysis.py
+│       ├── temperature_dependent_losses.py
+│       ├── electrothermal_optimizer.py
+│       ├── full_electrothermal.py
+│       ├── device_profiles.py
+│       └── device_profile_adapter.py
 └── tests/
-    ├── test_loss_model.py
-    ├── test_waveforms.py
-    ├── test_frequency_sweep.py
-    ├── test_device_comparison.py
-    ├── test_loss_analysis.py
-    ├── test_frequency_optimizer.py
-    ├── test_thermal_analysis.py
-    ├── test_temperature_model.py
-    ├── test_electrothermal.py
-    └── test_transient_thermal.py
+    └── [automated test modules]
 ```
+
+The tree highlights the principal modules; additional files may be present in the repository.
 
 ## Installation and Setup
 
 ### Prerequisites
 
-- Python 3.14.7, the version used for development and testing
+- Python 3.14.7, the version used during development
 - Git
 - A terminal such as Git Bash
 - Visual Studio Code (recommended)
@@ -112,7 +122,7 @@ For Windows Git Bash:
 source .venv/Scripts/activate
 ```
 
-Confirm that `(.venv)` appears in your terminal before installing or running the project.
+If that activation path does not work in your environment, use the activation script appropriate to your shell.
 
 ### 4. Install dependencies
 
@@ -122,13 +132,15 @@ python -m pip install numpy matplotlib streamlit
 
 ## Running the Dashboard
 
-From the project root, with the virtual environment activated, run:
+From the project root, with the virtual environment activated:
 
 ```bash
 python -m streamlit run app/dashboard.py
 ```
 
-Streamlit will display a local URL in the terminal. Open that URL in your browser to interact with the simulator.
+Streamlit will display a local URL in the terminal. Open that URL in your browser to explore the simulator.
+
+The dashboard includes device comparisons, loss breakdowns, frequency analysis, and thermal/electrothermal investigations.
 
 ## Running the Tests
 
@@ -138,9 +150,11 @@ Run the complete automated test suite:
 python -m unittest discover -s tests -v
 ```
 
-**Latest verified result:** 59 tests passed.
+**Latest reported result: 94 tests passed.**
 
-The tests cover the implemented loss models, waveform generation, frequency analysis, device comparison, thermal calculations, electrothermal iteration, transient temperature simulation, and input validation.
+This result reflects the project's reported test run; rerun the command to verify the current checkout.
+
+The test suite covers power-loss calculations, waveform generation, frequency analysis, device comparisons, thermal modeling, electrothermal behavior, device profiles, and input validation.
 
 ## Mathematical Models
 
@@ -154,16 +168,16 @@ P_{\mathrm{cond}} = I^2 R_{\mathrm{DS(on)}}
 
 where:
 
-- \(I\) is the modeled RMS current.
+- \(I\) is the modeled current.
 - \(R_{\mathrm{DS(on)}}\) is the on-state resistance.
 
 ### 2. Switching loss
 
-The simulator estimates switching loss as:
+The switching-loss estimate is:
 
 \[
 P_{\mathrm{sw}} =
-\frac{1}{2} V I (t_r+t_f) f_s
+\frac{1}{2}VI(t_r+t_f)f_s
 \]
 
 where:
@@ -190,7 +204,7 @@ P_{\mathrm{total}} =
 P_{\mathrm{cond}}+P_{\mathrm{sw}}+P_{\mathrm{gate}}
 \]
 
-The estimated efficiency is calculated as:
+### 5. Estimated efficiency
 
 \[
 \eta =
@@ -199,49 +213,72 @@ The estimated efficiency is calculated as:
 \times 100\%
 \]
 
-### 5. Steady-state junction temperature
+This is a simplified estimate based on the losses represented in the model.
 
-The steady-state thermal estimate is:
-
-\[
-T_j = T_a + P_{\mathrm{loss}}R_{\theta}
-\]
-
-where \(T_j\) is junction temperature, \(T_a\) is ambient temperature, and \(R_{\theta}\) is the modeled thermal resistance.
-
-### 6. Transient thermal response
-
-The transient thermal module uses a first-order thermal RC model:
+### 6. Steady-state junction temperature
 
 \[
-T_j(t) = T_{\mathrm{initial}}+
-\Delta P R_{\theta}
-\left(1-e^{-t/\tau}\right)
+T_j = T_a + P_{\mathrm{loss}}R_\theta
 \]
 
 where:
 
+- \(T_j\) is junction temperature.
+- \(T_a\) is ambient temperature.
+- \(P_{\mathrm{loss}}\) is modeled dissipated power.
+- \(R_\theta\) is the selected thermal resistance.
+
+### 7. Transient thermal response
+
+The first-order thermal RC model uses:
+
 \[
-\tau=R_{\theta}C_{\theta}
+T_j(t) = T_{\mathrm{initial}}+
+\Delta P R_\theta
+\left(1-e^{-t/\tau}\right)
 \]
 
-Here, \(\Delta P\) is the modeled change in power dissipation, \(C_{\theta}\) is thermal capacitance, and \(\tau\) is the thermal time constant.
+with:
 
-These equations are simplified analytical models intended for learning and exploration, not complete semiconductor-device models.
+\[
+\tau=R_\theta C_\theta
+\]
+
+where \(\Delta P\) is the modeled change in power dissipation, \(C_\theta\) is thermal capacitance, and \(\tau\) is the thermal time constant.
+
+These equations are simplified analytical approximations. Actual semiconductor behavior can depend on operating conditions, device construction, parasitic effects, and the surrounding circuit.
+
+## Datasheet-Based Device Profile
+
+The simulator includes a profile for the **GS66508B GaN transistor** based on its manufacturer datasheet.
+
+- **Manufacturer reference:** [GS66508B datasheet — Infineon](https://www.infineon.com/dgdl/Infineon-GS66508B-DataSheet-v01_00-EN.pdf?fileId=8ac78c8c8d2fe47b018e5161c92653de)
+- **Typical on-state resistance:** 50 mΩ under the specified datasheet conditions.
+- **Gate charge:** 6.1 nC under the specified gate-charge test conditions.
+- **Rise time:** 3.7 ns under the stated switching test conditions.
+- **Fall time:** 5.2 ns under the stated switching test conditions.
+- **Gate-drive voltage used in the profile:** 6 V.
+
+The dashboard exposes device-source metadata and test conditions for profiles that include them.
+
+**Important:** These values are associated with particular datasheet test conditions. They should not be treated as universal values for all operating points. The simulator's simplified loss equations do not reproduce every characteristic of the physical device.
+
+Illustrative profiles are clearly distinguished from the datasheet-based profile. Comparisons are meaningful only in the context of their chosen parameters and assumptions.
 
 ## Model Assumptions and Limitations
 
 - The simulator is software-only and does not require physical GaN hardware.
-- GaN and silicon comparisons depend on the input parameters; they are not universal claims about every device.
-- Switching-loss calculations use a simplified voltage-current overlap approximation.
-- The loss model does not comprehensively account for reverse conduction, output-capacitance losses, dead time, parasitic inductance, or gate-drive circuit dynamics.
-- The steady-state thermal model assumes a fixed thermal resistance.
-- The temperature-dependent resistance model uses a simplified linear relationship.
-- The electrothermal model uses iterative calculations and simplified electrical and thermal assumptions.
-- The transient thermal model uses a first-order RC approximation with constant thermal properties.
-- Results have not been established as hardware-validated predictions.
+- Device comparisons depend on the chosen parameters and are not universal claims about all GaN or silicon devices.
+- Switching loss is estimated using a simplified voltage-current overlap approximation.
+- The loss model does not comprehensively represent reverse conduction, output-capacitance losses, dead time, parasitic inductance, or gate-driver dynamics.
+- Datasheet parameters may vary with voltage, current, temperature, and test setup.
+- The steady-state thermal model uses a simplified thermal resistance.
+- Temperature-dependent resistance is approximated using a simplified relationship.
+- Electrothermal results depend on the assumptions and convergence behavior of the implemented iterative model.
+- The transient thermal model uses a first-order RC approximation with simplified thermal properties.
+- The project has not been established as a hardware-validated predictor of real-world device performance.
 
-Use the results to understand trends and compare modeled scenarios. Real design decisions require appropriate device datasheets, more complete models, and experimental validation.
+Use the results to understand trends and compare modeled scenarios. Real design decisions require suitable device datasheets, more complete circuit and thermal models, and experimental validation.
 
 ## Learning Outcomes
 
@@ -249,22 +286,24 @@ This project provides practical experience with:
 
 - Wide-bandgap semiconductor applications
 - Power-electronics loss estimation
-- Python modular programming
+- Python modular software design
 - Numerical modeling and parameter sweeps
 - Thermal analysis and electrothermal feedback
-- Data visualization and interactive dashboards
-- Unit testing and Git-based development
+- Interactive visualization with Streamlit
+- Automated testing and input validation
+- Version control and collaborative engineering practices
 
 ## Future Improvements
 
 Potential extensions include:
 
-- Datasheet-based parameter extraction for specific GaN and silicon devices
-- Output-capacitance and reverse-conduction loss models
+- More detailed output-capacitance and reverse-conduction loss models
 - Dead-time and parasitic-effect analysis
-- More detailed thermal networks
-- Model calibration against manufacturer data or experimental measurements
-- Exportable simulation reports and additional comparison plots
+- Advanced multi-node thermal networks
+- Model calibration against experimental measurements
+- Additional datasheet-backed GaN and silicon profiles
+- Exportable simulation reports and comparison plots
+- Continuous integration for automated testing
 
 ## Author
 
