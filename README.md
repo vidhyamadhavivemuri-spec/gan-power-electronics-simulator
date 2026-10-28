@@ -89,7 +89,7 @@ gan-power-electronics-simulator/
 └── tests/
     └── [automated test modules]
 ```
-
+See [Architecture Diagram](docs/architecture.md) for an overview of the simulator's modules and data flow.
 The tree highlights the principal modules; additional files may be present in the repository.
 
 ## Installation and Setup
